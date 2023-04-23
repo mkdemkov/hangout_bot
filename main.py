@@ -1,11 +1,11 @@
 import logging
 import os
 import aiogram
+from static import constants
 from dotenv import load_dotenv
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,14 +20,14 @@ dp = Dispatcher(bot)
 welcome_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text="btn1"),
-            KeyboardButton(text="btn2"),
-            KeyboardButton(text="btn3"),
-        ],
-        [
-            KeyboardButton(text="btn4"),
-            KeyboardButton(text="btn5"),
-        ]
+            KeyboardButton(text="Я здесь 📍", request_location=True)  # ,
+            # KeyboardButton(text="btn2"),
+            # KeyboardButton(text="btn3"),
+        ]  # ,
+        # [
+        # KeyboardButton(text="btn4"),
+        # KeyboardButton(text="btn5"),
+        # ]
     ],
     resize_keyboard=True
 )
@@ -35,8 +35,8 @@ welcome_keyboard = ReplyKeyboardMarkup(
 
 # Define the function to send the message with the keyboard
 async def send_keyboard(message: types.Message):
-    logging.info("текст отправлен")
-    await message.answer("Choose a button:", reply_markup=welcome_keyboard)
+    logging.info(f'Пользователю {message.from_user.username} отправлено основное сообщение и показана клавиатура')
+    await message.answer(constants.main_message, reply_markup=welcome_keyboard)
 
 
 # Define the function to handle button clicks
@@ -46,10 +46,21 @@ async def button_click_handler(message: types.Message):
     await message.answer(f'You clicked {button_text}')
 
 
+# Handler for handling location messages
+@dp.message_handler(content_types=types.ContentType.LOCATION)
+async def handle_location(message: types.Message):
+    # Extracting latitude and longitude from the message
+    latitude = message.location.latitude
+    longitude = message.location.longitude
+
+    # Sending the coordinates back to the user
+    await message.reply(f"Your coordinates are: {latitude}, {longitude}")
+
+
 # Define the function to handle commands /start and /help
 @dp.message_handler(commands=['start', 'help'])
 async def send_start_message(message: types.Message):
-    logging.info(f'User {message.from_user.username} user command {message.text}')
+    logging.info(f'User {message.from_user.username} отправил /start или /help')
     await send_keyboard(message)
 
 
