@@ -57,9 +57,14 @@ async def handle_location(message: types.Message):
     # Sending the coordinates back to the user
     # price сделать как надо и тип заведения тоже
     options = location_parser.parse_location(latitude, longitude, 1500)
-    print(str(options))
+    result = '<b>Вот, что мне удалось найти:</b>\n\n'
+    for option in options:
+        name = option['name']
+        address = option['address']
+        distance = option['distance']
+        result += f'Название - <b>{name}</b>\nАдрес - <b>{address}</b>\nРасстояние - <b>{distance}м</b>\n\n'
 
-    await message.reply(f"Your coordinates are: {latitude}, {longitude}")
+    await message.reply(result, parse_mode='HTML')
 
 
 # Define the function to handle commands /start and /help

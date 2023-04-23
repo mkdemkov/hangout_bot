@@ -8,14 +8,15 @@ def parse_location(latitude, longitude, radius):
     url = 'https://api.foursquare.com/v3/places/search'
 
     params = {
-        'query' : 'coffee',
-        'client_id': os.getenv('CLIENT_ID'),
-        'client_secret': os.getenv('CLIENT_SECRET'),
+        'query': 'coffee',
+        # 'client_id': os.getenv('CLIENT_ID'),
+        # 'client_secret': os.getenv('CLIENT_SECRET'),
         'll': f'{latitude},{longitude}',
-        'open_now' : 'true',
+        'open_now': 'true',
         'radius': radius,
-        'categoryId': '4d4b7105d754a06374d81259,4bf58dd8d48988d16d941735,4bf58dd8d48988d116941735',
-        'v': '20220424'
+        'sort': 'DISTANCE'
+        # 'categoryId': '4d4b7105d754a06374d81259,4bf58dd8d48988d16d941735,4bf58dd8d48988d116941735',
+        # 'v': '20220424'
     }
 
     token = os.getenv('API_KEY')
@@ -31,12 +32,13 @@ def parse_location(latitude, longitude, radius):
         file.write(str(response))
 
     nearby_venues = []
-    for venue in response['results']['categories']:
+    for venue in response['results']:
         name = venue['name']
         category = venue['categories'][0]['name']
-        price = venue.get('price', {}).get('tier')
-
-        nearby_venues.append({'name': name, 'category': category, 'price': price})
+        # price = venue.get('price', {}).get('tier')
+        address = venue['location']['address']
+        distance = venue['distance']
+        nearby_venues.append({'name': name, 'category': category, 'address': address, 'distance': distance})
 
     return nearby_venues
 
