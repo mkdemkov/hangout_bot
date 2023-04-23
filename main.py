@@ -1,11 +1,12 @@
 import logging
 import os
 import aiogram
-from static import constants
 from dotenv import load_dotenv
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from static import constants
+from location import location_parser
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -36,7 +37,7 @@ welcome_keyboard = ReplyKeyboardMarkup(
 # Define the function to send the message with the keyboard
 async def send_keyboard(message: types.Message):
     logging.info(f'Пользователю {message.from_user.username} отправлено основное сообщение и показана клавиатура')
-    await message.answer(constants.main_message, reply_markup=welcome_keyboard)
+    await message.answer(constants.main_message, reply_markup=welcome_keyboard, parse_mode='HTML')
 
 
 # Define the function to handle button clicks
@@ -54,6 +55,10 @@ async def handle_location(message: types.Message):
     longitude = message.location.longitude
 
     # Sending the coordinates back to the user
+    # price сделать как надо и тип заведения тоже
+    options = location_parser.parse_location(latitude, longitude, 1500)
+    print(str(options))
+
     await message.reply(f"Your coordinates are: {latitude}, {longitude}")
 
 
