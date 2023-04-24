@@ -56,14 +56,17 @@ async def handle_location(message: types.Message):
 
     # Sending the coordinates back to the user
     # price сделать как надо и тип заведения тоже
-    options = location_parser.parse_location(latitude, longitude, 1500)
+    options = await location_parser.parse_location(latitude, longitude, 1500)
+    sorted_by_distance = dict(sorted(options.items(), key=lambda x: x[1]['distance']))
     result = '<b>Вот, что мне удалось найти:</b>\n\n'
-    for option in options:
-        name = option['name']
-        address = option['address']
-        distance = option['distance']
-        result += f'Название - <b>{name}</b>\nАдрес - <b>{address}</b>\nРасстояние - <b>{distance}м</b>\n\n'
-
+    for key, value in sorted_by_distance.items():
+        name = value['name']
+        address = value['address']
+        phone = value['phone']
+        distance = value['distance']
+        # if the place not far then 1500 metres, it fits
+        if distance <= 1500:
+            result += f'<b>{name}</b>\n📍{address}\n📞{phone}\n🚶🏻Находится на расстоянии <b>{int(distance)}м.</b>\n\n'
     await message.reply(result, parse_mode='HTML')
 
 
