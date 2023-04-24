@@ -3,10 +3,10 @@ import os
 import aiogram
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, Update
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from static import constants
 from location import location_parser
-from database.database_scripts import update_state
+from database.database_scripts import update_state, get_type_and_budget
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,22 +17,17 @@ load_dotenv()
 bot = Bot(token=os.getenv('BOT_TOKEN'))
 dp = Dispatcher(bot)
 
-# Defined welcome keyboard
+# Defined keyboard with button to share location
 location_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="Я здесь 📍", request_location=True)  # ,
-            # KeyboardButton(text="btn2"),
-            # KeyboardButton(text="btn3"),
-        ]  # ,
-        # [
-        # KeyboardButton(text="btn4"),
-        # KeyboardButton(text="btn5"),
-        # ]
+        ]
     ],
     resize_keyboard=True
 )
 
+# Defined keyboard with buttons to choose type of establishment
 type_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -44,6 +39,7 @@ type_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+# Defined keyboard with buttons to set up budget
 budget_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -55,6 +51,7 @@ budget_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+# Defined keyboard with button to use bot again
 try_again_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -65,18 +62,22 @@ try_again_keyboard = ReplyKeyboardMarkup(
 )
 
 
+# Function to send keyboard with budget options
 async def send_budget_keyboard(message: types.Message):
     await message.answer(constants.choose_budget, reply_markup=budget_keyboard, parse_mode='HTML')
 
 
+# Function to send keyboard with button to share location
 async def send_location_keyboard(message: types.Message):
     await message.answer(constants.location_message, reply_markup=location_keyboard, parse_mode='HTML')
 
 
+# Function to handle event when user clicked try again button
 async def handle_try_again_button_click(message: types.Message):
     await message.answer(constants.welcome_message, reply_markup=type_keyboard, parse_mode='HTML')
 
 
+# Function to handle event when user clicked one of the buttons to set up budget
 async def handle_budget_button_click(message: types.Message):
     id = message.from_user.id
     text = message.text
@@ -84,6 +85,7 @@ async def handle_budget_button_click(message: types.Message):
     await send_location_keyboard(message)
 
 
+# Function to handle event when user clicked one of the buttons to set up type of establishment
 async def handle_type_button_click(message: types.Message):
     id = message.from_user.id
     text = message.text
@@ -104,9 +106,9 @@ async def handle_location(message: types.Message):
     latitude = message.location.latitude
     longitude = message.location.longitude
 
-    # Sending the coordinates back to the user
-    # price сделать как надо и тип заведения тоже
-    options = await location_parser.parse_location(latitude, longitude, 1500)
+    type, budget = get_type_and_budget(message.from_user.id)  # extract data from database
+
+    options = await location_parser.parse_location(latitude, longitude, type, budget)
     sorted_by_distance = dict(sorted(options.items(), key=lambda x: x[1]['distance']))
     result = '<b>Вот, что мне удалось найти:</b>\n\n'
     for key, value in sorted_by_distance.items():
@@ -128,6 +130,7 @@ async def send_start_message(message: types.Message):
     await send_welcome_keyboard(message)
 
 
+# Register handlers
 dp.register_message_handler(handle_type_button_click, lambda message: message.text in ['Бары', 'Кафе', 'Рестораны'])
 dp.register_message_handler(handle_budget_button_click, lambda message: message.text in ['Low', 'Medium', 'High'])
 dp.register_message_handler(handle_try_again_button_click, lambda message: message.text == 'Попробовать еще')

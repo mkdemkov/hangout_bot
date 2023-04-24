@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, insert, update, select
 from dotenv import load_dotenv
 
 
+# Function to update state of user in database
 def update_state(user_id, type=None, budget=None):
     load_dotenv()
     path = os.getenv('PATH_FOR_DB')
@@ -22,9 +23,16 @@ def update_state(user_id, type=None, budget=None):
         statement = update(User).where(User.id == user_id).values(budget=budget)
         with engine.connect() as conn:
             conn.execute(statement)
-    # statement = update(User).where(User.id == 5).values(state='new_state')
-    # statement = insert(User).values(id=5, state='not active')
 
 
-if __name__ == '__main__':
-    update_state(0, 2)
+# Function to get type of place and user's budget from database
+def get_type_and_budget(user_id):
+    load_dotenv()
+    path = os.getenv('PATH_FOR_DB')
+    engine = create_engine(path)
+    statement = select(User.type).where(User.id == user_id)
+    with engine.connect() as conn:
+        type = conn.execute(statement).fetchone()
+        statement = select(User.budget).where(User.id == user_id)
+        budget = conn.execute(statement).fetchone()
+        return type, budget

@@ -1,14 +1,11 @@
-import json
 import logging
 import os
 import math
 from asyncio import sleep
-
-import aiohttp
-import foursquare
 import requests
 
 
+# Function to get rating and price of the given place
 def get_rating_and_price(id):
     logging.basicConfig(level=logging.INFO)
     url = 'https://api-maps.yandex.ru/2.1/'
@@ -27,6 +24,7 @@ def get_rating_and_price(id):
         logging.info(f'Ошибка при выполнение запроса: {response}')
 
 
+# Function to count distance in metres between to places
 def count_distance(long1, lat1, long2, lat2):
     R = 6371000  # radius of the Earth in meters
     phi1 = math.radians(lat1)
@@ -40,8 +38,11 @@ def count_distance(long1, lat1, long2, lat2):
     return R * c
 
 
-async def parse_location(latitude, longitude, radius):
+# Function to find nearby places according to its type and budget
+async def parse_location(latitude, longitude, type, budget):
     logging.basicConfig(level=logging.INFO)
+    type = str(type)[2:-3]
+    budget = str(budget)[2:-3]
     url = 'https://search-maps.yandex.ru/v1/'
     api_key = os.getenv('YANDEX')
     params = {
@@ -91,106 +92,3 @@ async def parse_location(latitude, longitude, radius):
         counter += 1
 
     return places
-
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.get(
-    #             f'https://search-maps.yandex.ru/v1/?apikey=76ba2dbd-dc7c-4d4b-99e9-eeb0c55329ab&text=бар&ll={longitude},{latitude}&type=biz&results=10&lang=ru_RU') as resp:
-    #         response_json = json.loads(await resp.text())
-    #         with open('static/response.json', 'w') as file:
-    #             file.write(str(response_json))
-    #         features = response_json['features']
-    #         nearby_bars = []
-    #         for feature in features:
-    #             distance = feature['properties']['Distance']
-    #             if distance <= 1500:
-    #                 nearby_bars.append(feature)
-    #         return nearby_bars
-
-    # url = 'https://api.foursquare.com/v3/places/search'
-    #
-    # params = {
-    #     # 'query': 'Coffe',
-    #     'categories': 13003,
-    #     # 'client_id': os.getenv('CLIENT_ID'),
-    #     # 'client_secret': os.getenv('CLIENT_SECRET'),
-    #     'll': f'{latitude},{longitude}',
-    #     'open_now': 'true',
-    #     'price' : 1,
-    #     'radius': radius,
-    #     'sort': 'DISTANCE',
-    #     'limit' : 5
-    #     # 'categoryId': '4d4b7105d754a06374d81259,4bf58dd8d48988d16d941735,4bf58dd8d48988d116941735',
-    #     # 'v': '20220424'
-    # }
-    #
-    # token = os.getenv('API_KEY')
-    #
-    # headers = {
-    #     'Accept': 'application/json',
-    #     'Authorization': f'{token}'
-    # }
-    #
-    # response = requests.request('GET', url, params=params, headers=headers).json()
-    # # response = requests.get(url, headers=headers)
-    #
-    # with open('static/response.json', 'w') as file:
-    #     file.write(str(response))
-    #
-    # nearby_venues = []
-    # for venue in response['results']:
-    #     name = venue['name']
-    #     category = venue['categories'][0]['name']
-    #     # price = venue.get('price', {}).get('tier')
-    #     address = venue['location']['address']
-    #     distance = venue['distance']
-    #     nearby_venues.append({'name': name, 'category': category, 'address': address, 'distance': distance})
-    #
-    # return nearby_venues
-
-    # location = Location(longitude=longitude, latitude=latitude)
-    #
-    # headers = {
-    #     'Accept': 'application/json',
-    #     'Authorization': os.getenv('API_KEY')
-    # }
-    #
-    # # Make a request to the Foursquare API to search for bars near your location
-    # url = 'https://api.foursquare.com/v3/places/search'
-    # params = {
-    #     'client_id': os.getenv('CLIENT_ID'),
-    #     'client_secret': os.getenv('CLIENT_SECRET'),
-    #     'll': f"{location.latitude},{location.longitude}",
-    #     'query': type_of_location,
-    #     'radius': 1500,
-    #     'price': price,
-    #     'v': str(datetime.today().strftime('%Y%m%d'))  # today's date
-    # }
-    # response = requests.get(url, params=params, headers=headers).json()
-    #
-    # # Parse the response to extract the names of the bars that are within 500 meters of your location and that are free
-    # bars = {}
-    # with open('static/response.json', 'w') as file:
-    #     file.write(str(response))
-    # for venue in response['response']['venues']:
-    #     if venue['location']['distance'] <= 2000 and venue['price']['tier'] == 0:
-    #         name = venue['name']
-    #         bars[name]['distance'] = venue['location']['distance']
-    #         bars[name]['price'] = venue['price']
-    #
-    # # Return the list of bar names
-    # return bars
-    # gmaps = googlemaps.Client(key=os.getenv('API_KEY'))
-    # location = (latitude, longitude)  # current location
-    # radius = 1500  # maximum distance for places
-    # language = 'ru'
-    #
-    # places = gmaps.places_nearby(
-    #     location=location,
-    #     radius=radius,
-    #     keyword=type_of_location,
-    #     language=language,
-    #     open_now=True,
-    #     type=type_of_location
-    # )
-    #
-    # return places

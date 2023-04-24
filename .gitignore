@@ -2,3 +2,7 @@
 .env
 venv/
 static/response.json
+static/__pycache__/
+database/__pycache__/
+database/entities/__pycache__/
+location/__pycache__/
