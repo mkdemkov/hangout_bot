@@ -2,15 +2,29 @@ import json
 import logging
 import os
 import math
+from asyncio import sleep
 
 import aiohttp
 import foursquare
 import requests
 
 
-
 def get_rating_and_price(id):
-
+    logging.basicConfig(level=logging.INFO)
+    url = 'https://api-maps.yandex.ru/2.1/'
+    api_key = os.getenv('YANDEX')
+    params = {
+        'apikey': api_key,
+        'id': id,
+        'lang': 'ru_RU',
+        'type': 'biz'
+    }
+    try:
+        response = requests.get(url, params=params)
+        response_json = response.text
+        print(response_json)
+    except:
+        logging.info(f'Ошибка при выполнение запроса: {response}')
 
 
 def count_distance(long1, lat1, long2, lat2):
@@ -29,17 +43,17 @@ def count_distance(long1, lat1, long2, lat2):
 async def parse_location(latitude, longitude, radius):
     logging.basicConfig(level=logging.INFO)
     url = 'https://search-maps.yandex.ru/v1/'
+    api_key = os.getenv('YANDEX')
     params = {
-        'apikey': '76ba2dbd-dc7c-4d4b-99e9-eeb0c55329ab',
+        'apikey': api_key,
         'text': 'кафе',
         'll': f'{longitude},{latitude}',
         'spn': f'{0.1},{0.1}',
         'type': 'biz',
-        'results': 100,
+        'results': 50,
         'lang': 'ru_RU',
         'rspn': 1
     }
-
 
     response = requests.get(url, params=params).json()
 
@@ -55,7 +69,13 @@ async def parse_location(latitude, longitude, radius):
         place = feature['properties']
         info = place['CompanyMetaData']
         id = info['id']
-        rating, price = get_rating_and_price(id)
+        long = place['boundedBy'][0][0]
+        lat = place['boundedBy'][0][1]
+        distance = count_distance(longitude, latitude, long, lat)
+        places[counter]['distance'] = distance
+        if (int(distance) <= 1500):
+            get_rating_and_price(id)
+            await sleep(0.8)
         try:
             name = info['name']
             address = info['address']
@@ -66,10 +86,6 @@ async def parse_location(latitude, longitude, radius):
             places[counter]['name'] = name
             places[counter]['address'] = address
             places[counter]['phone'] = phone
-            long = place['boundedBy'][0][0]
-            lat = place['boundedBy'][0][1]
-            distance = count_distance(longitude, latitude, long, lat)
-            places[counter]['distance'] = distance
         except Exception:
             logging.info('Что-то пошло не так при попытке распарсить какое-то поле')
         counter += 1
