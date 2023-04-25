@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from static import constants
 from location import location_parser
-from database.database_scripts import update_state, get_type_and_budget
+from database.database_scripts import update_state, get_type_and_distance
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -40,12 +40,12 @@ type_keyboard = ReplyKeyboardMarkup(
 )
 
 # Defined keyboard with buttons to set up budget
-budget_keyboard = ReplyKeyboardMarkup(
+distance_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Low'),
-            KeyboardButton(text='Medium'),
-            KeyboardButton(text='High')
+            KeyboardButton(text='До 500м'),
+            KeyboardButton(text='До 1км'),
+            KeyboardButton(text='До 1.5км')
         ]
     ],
     resize_keyboard=True
@@ -63,8 +63,8 @@ try_again_keyboard = ReplyKeyboardMarkup(
 
 
 # Function to send keyboard with budget options
-async def send_budget_keyboard(message: types.Message):
-    await message.answer(constants.choose_budget, reply_markup=budget_keyboard, parse_mode='HTML')
+async def send_distance_keyboard(message: types.Message):
+    await message.answer(constants.choose_budget, reply_markup=distance_keyboard, parse_mode='HTML')
 
 
 # Function to send keyboard with button to share location
@@ -78,10 +78,10 @@ async def handle_try_again_button_click(message: types.Message):
 
 
 # Function to handle event when user clicked one of the buttons to set up budget
-async def handle_budget_button_click(message: types.Message):
+async def handle_distance_button_click(message: types.Message):
     id = message.from_user.id
     text = message.text
-    update_state(user_id=id, budget=text)
+    update_state(user_id=id, distance=text)
     await send_location_keyboard(message)
 
 
@@ -90,7 +90,7 @@ async def handle_type_button_click(message: types.Message):
     id = message.from_user.id
     text = message.text
     update_state(user_id=id, type=text)
-    await send_budget_keyboard(message)
+    await send_distance_keyboard(message)
 
 
 # Define the function to send the message with the keyboard
@@ -106,21 +106,29 @@ async def handle_location(message: types.Message):
     latitude = message.location.latitude
     longitude = message.location.longitude
 
-    type, budget = get_type_and_budget(message.from_user.id)  # extract data from database
+    type, distance = get_type_and_distance(message.from_user.id)  # extract data from database
 
-    options = await location_parser.parse_location(latitude, longitude, type, budget)
-    sorted_by_distance = dict(sorted(options.items(), key=lambda x: x[1]['distance']))
-    result = '<b>Вот, что мне удалось найти:</b>\n\n'
-    for key, value in sorted_by_distance.items():
-        name = value['name']
-        address = value['address']
-        phone = value['phone']
-        distance = value['distance']
-        # if the place not far then 1500 metres, it fits
-        if distance <= 1500:
-            result += f'<b>{name}</b>\n📍{address}\n📞{phone}\n🚶🏻Находится на расстоянии <b>{int(distance)}м.</b>\n\n'
-    await message.answer(result, parse_mode='HTML')
-    await message.answer(constants.try_again, reply_markup=try_again_keyboard, parse_mode='HTML')
+    options = await location_parser.parse_location(latitude, longitude, type, distance)
+    valid_options = {}
+    for key, value in options.items():
+        if bool(value):
+            valid_options[key] = value
+    sorted_by_distance = dict(sorted(valid_options.items(), key=lambda x: x[1]['distance']))
+    if int(valid_options[0]['distance']) > distance[0]:
+        await message.answer(constants.no_places_nearby, reply_markup=try_again_keyboard, parse_mode='HTML')
+
+    else:
+        result = '<b>Вот, что мне удалось найти:</b>\n\n'
+        for key, value in sorted_by_distance.items():
+            name = value['name']
+            address = value['address']
+            phone = value['phone']
+            distance_from_me = int(value['distance'])
+            # if the place not far then user wants
+            if distance_from_me <= distance[0]:
+                result += f'<b>{name}</b>\n📍{address}\n📞{phone}\n🚶🏻Находится на расстоянии {distance_from_me}м\n\n'
+        await message.answer(result, parse_mode='HTML')
+        await message.answer(constants.try_again, reply_markup=try_again_keyboard, parse_mode='HTML')
 
 
 # Define the function to handle commands /start and /help
@@ -132,7 +140,8 @@ async def send_start_message(message: types.Message):
 
 # Register handlers
 dp.register_message_handler(handle_type_button_click, lambda message: message.text in ['Бары', 'Кафе', 'Рестораны'])
-dp.register_message_handler(handle_budget_button_click, lambda message: message.text in ['Low', 'Medium', 'High'])
+dp.register_message_handler(handle_distance_button_click,
+                            lambda message: message.text in ['До 500м', 'До 1км', 'До 1.5км'])
 dp.register_message_handler(handle_try_again_button_click, lambda message: message.text == 'Попробовать еще')
 
 # Start the bot

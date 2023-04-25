@@ -3,25 +3,26 @@ import os
 import math
 from asyncio import sleep
 import requests
+import dgis
 
 
 # Function to get rating and price of the given place
-def get_rating_and_price(id):
-    logging.basicConfig(level=logging.INFO)
-    url = 'https://api-maps.yandex.ru/2.1/'
-    api_key = os.getenv('YANDEX')
-    params = {
-        'apikey': api_key,
-        'id': id,
-        'lang': 'ru_RU',
-        'type': 'biz'
-    }
-    try:
-        response = requests.get(url, params=params)
-        response_json = response.text
-        print(response_json)
-    except:
-        logging.info(f'Ошибка при выполнение запроса: {response}')
+# def get_rating_and_price(id):
+#     logging.basicConfig(level=logging.INFO)
+#     url = 'https://api-maps.yandex.ru/2.1/'
+#     api_key = os.getenv('YANDEX')
+#     params = {
+#         'apikey': api_key,
+#         'id': id,
+#         'lang': 'ru_RU',
+#         'type': 'biz'
+#     }
+#     try:
+#         response = requests.get(url, params=params)
+#         response_json = response.text
+#         print(response_json)
+#     except:
+#         logging.info(f'Ошибка при выполнение запроса: {response}')
 
 
 # Function to count distance in metres between to places
@@ -38,20 +39,31 @@ def count_distance(long1, lat1, long2, lat2):
     return R * c
 
 
+def get_distance_in_metres(string):
+    if string == 'До 500м':
+        return 500
+    if string == 'До 1км':
+        return 1000
+    return 1500
+
+
 # Function to find nearby places according to its type and budget
-async def parse_location(latitude, longitude, type, budget):
+async def parse_location(latitude, longitude, type, distance):
     logging.basicConfig(level=logging.INFO)
-    type = str(type)[2:-3]
-    budget = str(budget)[2:-3]
+    if type in ['Бары', 'Рестораны']:
+        type = str(type)[2:-4]
+    else:
+        type = str(type)[2:-3]
+    distance = get_distance_in_metres(distance)
     url = 'https://search-maps.yandex.ru/v1/'
     api_key = os.getenv('YANDEX')
     params = {
         'apikey': api_key,
-        'text': 'кафе',
+        'text': type,
         'll': f'{longitude},{latitude}',
-        'spn': f'{0.1},{0.1}',
-        'type': 'biz',
-        'results': 50,
+        'spn': f'{0.15},{0.15}',
+        # 'type': 'biz',
+        'results': 150,
         'lang': 'ru_RU',
         'rspn': 1
     }
@@ -69,26 +81,23 @@ async def parse_location(latitude, longitude, type, budget):
         places[counter] = {}
         place = feature['properties']
         info = place['CompanyMetaData']
-        id = info['id']
         long = place['boundedBy'][0][0]
         lat = place['boundedBy'][0][1]
-        distance = count_distance(longitude, latitude, long, lat)
-        places[counter]['distance'] = distance
-        if (int(distance) <= 1500):
-            get_rating_and_price(id)
-            await sleep(0.8)
-        try:
-            name = info['name']
-            address = info['address']
+        distance_from_me = count_distance(longitude, latitude, long, lat)
+        if distance_from_me + 50 <= distance:
             try:
-                phone = info['Phones'][0]['formatted']
-            except:
-                phone = 'Отсутствует'
-            places[counter]['name'] = name
-            places[counter]['address'] = address
-            places[counter]['phone'] = phone
-        except Exception:
-            logging.info('Что-то пошло не так при попытке распарсить какое-то поле')
-        counter += 1
+                name = info['name']
+                address = info['address']
+                places[counter]['distance'] = distance_from_me
+                try:
+                    phone = info['Phones'][0]['formatted']
+                except:
+                    phone = 'Отсутствует'
+                places[counter]['name'] = name
+                places[counter]['address'] = address
+                places[counter]['phone'] = phone
+            except Exception:
+                logging.info('Что-то пошло не так при попытке распарсить какое-то поле')
+            counter += 1
 
     return places
