@@ -61,7 +61,6 @@ try_again_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-
 # Function to send keyboard with budget options
 async def send_distance_keyboard(message: types.Message):
     await message.answer(constants.choose_budget, reply_markup=distance_keyboard, parse_mode='HTML')
@@ -126,7 +125,7 @@ async def handle_location(message: types.Message):
             distance_from_me = int(value['distance'])
             # if the place not far then user wants
             if distance_from_me <= distance[0]:
-                result += f'<b>{name}</b>\n📍{address}\n📞{phone}\n🚶🏻Находится на расстоянии {distance_from_me}м\n\n'
+                result += f'<b>{name}</b>\n📍{address}\n📞{phone}\n🚶🏻{distance_from_me}м от вас\n\n'
         await message.answer(result, parse_mode='HTML')
         await message.answer(constants.try_again, reply_markup=try_again_keyboard, parse_mode='HTML')
 
