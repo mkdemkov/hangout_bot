@@ -138,6 +138,16 @@ async def send_start_message(message: types.Message):
     await send_welcome_keyboard(message)
 
 
+@dp.message_handler(commands=['about'])
+async def send_about_message(message: types.Message):
+    await message.answer(constants.about, reply_markup=type_keyboard, parse_mode='HTML')
+
+
+@dp.message_handler(commands=['contact'])
+async def send_contacts(message: types.Message):
+    await message.answer(constants.contact, reply_markup=type_keyboard, parse_mode='HTML')
+
+
 # Register handlers
 dp.register_message_handler(handle_type_button_click, lambda message: message.text in ['Бары', 'Кафе', 'Рестораны'])
 dp.register_message_handler(handle_distance_button_click,
